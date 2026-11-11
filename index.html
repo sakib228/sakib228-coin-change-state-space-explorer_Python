@@ -68,16 +68,20 @@ table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid 
 <script>
 const PRE=[["Simple Example",[1,5,10,25],30,"The textbook case. 5 + 25 reaches 30 in two coins, and both searches find it."],["Greedy Trap",[1,3,4],6,"Greedy takes 4 + 1 + 1 (3 coins). The best answer is 3 + 3 (2 coins)."],["Larger Target",[1,5,12,25],64,"A bigger search. A* expands far fewer states than BFS."],["Unreachable",[5,10],33,"Every sum is a multiple of 5, so 33 cannot be built. Both must try every state."],["Zero Target",[1,5,10],0,"Target 0 is already solved with zero coins."]];
 const $=i=>document.getElementById(i);
+// Input Validation & Parsing Logic
 function parse(ct,tt){const raw=ct.split(/[\s,]+/).filter(Boolean);if(!raw.length)return{err:"Enter at least one coin value."};
  let cs=[];for(const t of raw){if(!/^-?\d+$/.test(t))return{err:"“"+t+"” is not a whole number."};const v=+t;if(v<1)return{err:"Coins must be 1 or more."};if(v>1000)return{err:"Coins can be at most 1000."};cs.push(v)}
  cs=[...new Set(cs)].sort((a,b)=>a-b);if(cs.length>8)return{err:"Use at most 8 different coins."};
  tt=tt.trim();if(!/^-?\d+$/.test(tt))return{err:"Target must be a whole number."};const T=+tt;if(T<0)return{err:"Target cannot be negative."};if(T>500)return{err:"Target can be at most 500."};
  return{coins:cs,T,err:""}}
+ // Core Search Logic (BFS & A* Search Implementation)
 function search(algo,coins,T){const mx=coins[coins.length-1],A=algo==="astar",nodes=[];
  const mk=(a,p,c,g,cr)=>{const h=A?Math.ceil((T-a)/mx):null;const n={id:nodes.length,a,p,c,g,h,f:A?g+h:null,cr,ex:null,rp:null,ch:[],x:0};nodes.push(n);if(p!==null)nodes[p].ch.push(n.id);return n};
+ // Path reconstruction helper
  const path=id=>{const o=[];while(nodes[id].p!==null){o.push(nodes[id].c);id=nodes[id].p}return o.reverse()};
  mk(0,null,null,0,0);const steps=[];let gen=1,exp=0,mf=1,pr=0,found=false,goal=null;
  const live=new Map([[0,0]]),closed=new Set(),queue=[0],seen=new Set([0]);let qi=0;
+// Main Search Loop (BFS uses Queue, A* uses Priority Evaluation via Map)
  while(A?live.size:qi<queue.length){let id;
   if(A){let b=null;for(const u of live.values()){const m=nodes[u];if(b===null||m.f<nodes[b].f||(m.f===nodes[b].f&&(m.h<nodes[b].h||(m.h===nodes[b].h&&u<b))))b=u}id=b;live.delete(nodes[id].a);closed.add(nodes[id].a)}else id=queue[qi++];
   const n=nodes[id];exp++;n.ex=exp;const cr=[],rp=[];let over=0,dup=0,msg;
@@ -95,6 +99,7 @@ function search(algo,coins,T){const mx=coins[coins.length-1],A=algo==="astar",no
  if(!found)steps[steps.length-1].msg+=" No solution: nothing left to expand.";
  let c=0;const st=[[0,0]];while(st.length){const[u,d]=st.pop(),n=nodes[u];if(!n.ch.length)n.x=c++;else if(d)n.x=n.ch.reduce((s,k)=>s+nodes[k].x,0)/n.ch.length;else{st.push([u,1]);for(let i=n.ch.length-1;i>=0;i--)st.push([n.ch[i],0])}}
  return{algo,coins,T,nodes,steps,found,goal,path:found?path(goal):[],gen,exp,mf,pr,ms:0}}
+ // Execution Time Benchmarking Logic
 function timeit(a,cs,T){let r=0;const t0=performance.now();let e;do{search(a,cs,T);r++;e=performance.now()-t0}while(!((e>25&&r>=5)||r>=300));return e/r}
 let R=null,k=0,timer=null,speed=1,algo="astar",cur=null;
 const UX=50,UY=84,RD=16,OX=70,OY=40;
