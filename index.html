@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Coin Change State Space Explorer</title>
+<style>
+:root{--bg:#f4f6fb;--card:#fff;--ink:#0b1b3a;--mut:#5b6475;--line:#cbd5e1;--acc:#2563eb;--cur:#3b82f6;--goal:#10b981;--vis:#64748b;--sv:#f1f5f9;--ok:#e3f6ee;--oktx:#0b6b4b;--err:#dc2626;--chip:#e8eefb;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0a0e17;--card:#111827;--ink:#e5e7eb;--mut:#94a3b8;--line:#1f2937;--sv:#0f172a;--ok:#0b2a22;--oktx:#6ee7b7;--chip:#172036}}
+:root[data-theme="dark"]{--bg:#0a0e17;--card:#111827;--ink:#e5e7eb;--mut:#94a3b8;--line:#1f2937;--sv:#0f172a;--ok:#0b2a22;--oktx:#6ee7b7;--chip:#172036}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+.wrap{max-width:1250px;margin:0 auto;padding:14px;display:grid;grid-template-columns:300px 1fr;gap:12px}
+@media(max-width:860px){.wrap{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px;margin-bottom:12px}
+h1{font-size:20px;margin:0 0 2px}h2{font-size:11px;letter-spacing:.12em;color:var(--mut);margin:0 0 8px;text-transform:uppercase}
+.tag{color:var(--acc);font:700 11px ui-monospace,monospace;letter-spacing:.2em}
+label{display:block;color:var(--mut);font-size:12px;margin-top:8px}
+input[type=text]{width:100%;box-sizing:border-box;padding:8px;border:1px solid var(--line);border-radius:6px;background:var(--sv);color:var(--ink);font:13px ui-monospace,monospace}
+button{font:inherit;border:1px solid var(--line);background:var(--sv);color:var(--ink);border-radius:6px;padding:6px 10px;cursor:pointer}
+button:disabled{opacity:.45;cursor:not-allowed}button.on,button.pri{background:var(--acc);color:#fff;border-color:var(--acc)}
+.row{display:flex;gap:6px;flex-wrap:wrap;align-items:center}.row>*{flex:0 0 auto}.two>*{flex:1}
+.pre{display:flex;justify-content:space-between;width:100%;margin-top:4px;text-align:left}.pre small{color:var(--mut);font-family:ui-monospace,monospace}
+.pre.on small{color:#dbe6ff}
+#err{color:var(--err);font-size:12px;min-height:16px}#note{color:var(--mut);font-size:12px;margin-top:8px}
+#gw{overflow:auto;background:var(--sv);border:1px solid var(--line);border-radius:8px;height:430px}
+svg text{font-family:ui-monospace,monospace;fill:var(--mut)}
+.n{stroke-width:1.5}.cur{fill:var(--cur);stroke:var(--cur)}.goal{fill:var(--goal);stroke:var(--goal)}.vis{fill:var(--vis);stroke:var(--vis)}
+.opn{fill:var(--sv);stroke:var(--mut);stroke-dasharray:3 2}.rep{fill:var(--sv);stroke:var(--line);stroke-dasharray:2 3;opacity:.7}
+svg text.nt{fill:var(--ink);font-weight:700;font-size:12px}svg .cur+text.nt,svg .goal+text.nt,svg .vis+text.nt{fill:#fff}
+.lg{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;color:var(--mut);margin:8px 0}.lg i{display:inline-block;width:11px;height:11px;border-radius:50%;margin-right:4px;vertical-align:-1px;border:1.5px solid var(--mut)}
+#st{background:var(--ok);color:var(--oktx);padding:7px 10px;border-radius:6px;margin:6px 0}
+input[type=range]{width:100%}.mono{font-family:ui-monospace,monospace;font-size:12px;white-space:pre-wrap}
+.cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.chip{display:inline-block;background:var(--chip);border:1px dashed var(--mut);border-radius:12px;padding:1px 8px;margin:2px;font:12px ui-monospace,monospace}
+#tr{max-height:170px;overflow:auto;margin:0;padding:0;list-style:none}#tr li{padding:3px 6px;border-radius:4px;cursor:pointer;font-size:12px}#tr li.a{background:var(--acc);color:#fff}
+table{border-collapse:collapse;width:100%;font-size:13px}td,th{border:1px solid var(--line);padding:6px 8px;text-align:left;vertical-align:top}th{background:var(--sv)}
+.bar{height:6px;border-radius:3px;background:var(--vis);margin-top:3px}.bar.g{background:var(--goal)}
+</style></head><body>
+<div class="wrap">
+<div>
+ <div class="card"><div class="tag">COIN CHANGE</div><h1>State Space Explorer</h1>
+  <div style="color:var(--mut);font-size:12px">Watch BFS and A* search for the fewest coins, one state at a time.</div></div>
+ <div class="card"><h2>Problem</h2>
+  <label for="ci">Coin values (comma separated)</label><input type="text" id="ci" value="1, 5, 10, 25">
+  <div id="chips" style="margin-top:4px"></div>
+  <label for="ti">Target amount</label><input type="text" id="ti" value="30">
+  <div id="err"></div>
+  <label>Algorithm</label><div class="row two"><button id="bfs">BFS<br><small>level by level</small></button><button id="astar" class="on">A*<br><small>f = g + h</small></button></div>
+  <button class="pri" id="go" style="width:100%;margin-top:10px">Start Search</button></div>
+ <div class="card"><h2>Presets</h2><div id="pre"></div><div id="note"></div></div>
+ <button id="cmpb" style="width:100%">Compare BFS vs A*</button>
+</div>
+<div>
+ <div class="card"><h2>State space graph</h2>
+  <div id="gw"></div>
+  <div class="lg"><span><i style="background:var(--cur);border-color:var(--cur)"></i>Current</span><span><i style="background:var(--goal);border-color:var(--goal)"></i>Goal</span><span><i style="background:var(--vis);border-color:var(--vis)"></i>Visited</span><span><i style="border-style:dashed"></i>In open list</span><span><i style="border-style:dotted;opacity:.6"></i>Replaced</span><span>solid line = expanded, dashed = pending, +n = coin added</span></div>
+  <div id="st"></div>
+  <div class="row"><button id="rs">Reset</button><button id="bk">Back</button><button class="pri" id="pl">Play</button><button id="fw">Forward</button><button id="rp">Replay</button>
+   <span style="margin-left:8px;color:var(--mut)">Speed</span><span id="sp" class="row"></span><span id="sl" style="margin-left:auto;color:var(--mut)"></span></div>
+  <input type="range" id="sc" min="0" max="1" value="0" aria-label="Step"></div>
+ <div class="cols">
+  <div class="card"><h2>Live statistics</h2><div class="mono" id="stats"></div></div>
+  <div class="card"><h2>Active state</h2><div class="mono" id="act"></div><h2 style="margin-top:12px">Queue / open list</h2><div id="ol"></div></div>
+  <div class="card"><h2>Execution trace</h2><ul id="tr"></ul></div>
+ </div>
+ <div class="card" id="cmp" hidden></div>
+</div></div>
+<script>
+const PRE=[["Simple Example",[1,5,10,25],30,"The textbook case. 5 + 25 reaches 30 in two coins, and both searches find it."],["Greedy Trap",[1,3,4],6,"Greedy takes 4 + 1 + 1 (3 coins). The best answer is 3 + 3 (2 coins)."],["Larger Target",[1,5,12,25],64,"A bigger search. A* expands far fewer states than BFS."],["Unreachable",[5,10],33,"Every sum is a multiple of 5, so 33 cannot be built. Both must try every state."],["Zero Target",[1,5,10],0,"Target 0 is already solved with zero coins."]];
+const $=i=>document.getElementById(i);
+function parse(ct,tt){const raw=ct.split(/[\s,]+/).filter(Boolean);if(!raw.length)return{err:"Enter at least one coin value."};
+ let cs=[];for(const t of raw){if(!/^-?\d+$/.test(t))return{err:"“"+t+"” is not a whole number."};const v=+t;if(v<1)return{err:"Coins must be 1 or more."};if(v>1000)return{err:"Coins can be at most 1000."};cs.push(v)}
+ cs=[...new Set(cs)].sort((a,b)=>a-b);if(cs.length>8)return{err:"Use at most 8 different coins."};
+ tt=tt.trim();if(!/^-?\d+$/.test(tt))return{err:"Target must be a whole number."};const T=+tt;if(T<0)return{err:"Target cannot be negative."};if(T>500)return{err:"Target can be at most 500."};
+ return{coins:cs,T,err:""}}
+function search(algo,coins,T){const mx=coins[coins.length-1],A=algo==="astar",nodes=[];
+ const mk=(a,p,c,g,cr)=>{const h=A?Math.ceil((T-a)/mx):null;const n={id:nodes.length,a,p,c,g,h,f:A?g+h:null,cr,ex:null,rp:null,ch:[],x:0};nodes.push(n);if(p!==null)nodes[p].ch.push(n.id);return n};
+ const path=id=>{const o=[];while(nodes[id].p!==null){o.push(nodes[id].c);id=nodes[id].p}return o.reverse()};
+ mk(0,null,null,0,0);const steps=[];let gen=1,exp=0,mf=1,pr=0,found=false,goal=null;
+ const live=new Map([[0,0]]),closed=new Set(),queue=[0],seen=new Set([0]);let qi=0;
+ while(A?live.size:qi<queue.length){let id;
+  if(A){let b=null;for(const u of live.values()){const m=nodes[u];if(b===null||m.f<nodes[b].f||(m.f===nodes[b].f&&(m.h<nodes[b].h||(m.h===nodes[b].h&&u<b))))b=u}id=b;live.delete(nodes[id].a);closed.add(nodes[id].a)}else id=queue[qi++];
+  const n=nodes[id];exp++;n.ex=exp;const cr=[],rp=[];let over=0,dup=0,msg;
+  if(n.a===T){found=true;goal=id;const p=path(id);msg=p.length?"Goal reached: "+p.join(" + ")+" = "+T+" using "+p.length+" coins.":"Goal reached: target 0 needs zero coins."}
+  else{for(const c of coins){const ns=n.a+c;if(ns>T){over++;continue}
+    if(A){if(closed.has(ns)){pr++;dup++;continue}
+     if(live.has(ns)){const old=nodes[live.get(ns)];if(n.g+1<old.g){old.rp=exp;rp.push(old.a);const ch=mk(ns,id,c,n.g+1,exp);live.set(ns,ch.id);gen++;cr.push(ns)}else{pr++;dup++}continue}
+     const ch=mk(ns,id,c,n.g+1,exp);live.set(ns,ch.id)}
+    else{if(seen.has(ns)){pr++;dup++;continue}seen.add(ns);const ch=mk(ns,id,c,n.g+1,exp);queue.push(ch.id)}
+    gen++;cr.push(ns)}
+   msg="Expand "+n.a+(cr.length?". Added "+cr.join(", "):"")+(rp.length?". Replaced "+rp.join(", "):"")+((dup||over)?". Skipped "+[dup?dup+" already seen":"",over?over+" over target":""].filter(Boolean).join(", "):"")+"."}
+  mf=Math.max(mf,A?live.size:queue.length-qi);
+  const fr=A?[...live.values()].sort((x,y)=>nodes[x].f-nodes[y].f||nodes[x].h-nodes[y].h||x-y):queue.slice(qi);
+  steps.push({cur:id,fr,gen,exp,mf,pr,msg});if(found)break}
+ if(!found)steps[steps.length-1].msg+=" No solution: nothing left to expand.";
+ let c=0;const st=[[0,0]];while(st.length){const[u,d]=st.pop(),n=nodes[u];if(!n.ch.length)n.x=c++;else if(d)n.x=n.ch.reduce((s,k)=>s+nodes[k].x,0)/n.ch.length;else{st.push([u,1]);for(let i=n.ch.length-1;i>=0;i--)st.push([n.ch[i],0])}}
+ return{algo,coins,T,nodes,steps,found,goal,path:found?path(goal):[],gen,exp,mf,pr,ms:0}}
+function timeit(a,cs,T){let r=0;const t0=performance.now();let e;do{search(a,cs,T);r++;e=performance.now()-t0}while(!((e>25&&r>=5)||r>=300));return e/r}
+let R=null,k=0,timer=null,speed=1,algo="astar",cur=null;
+const UX=50,UY=84,RD=16,OX=70,OY=40;
+function setAlgo(a){algo=a;$("bfs").className=a==="bfs"?"on":"";$("astar").className=a==="astar"?"on":""}
+function validate(){const p=parse($("ci").value,$("ti").value);cur=p;$("err").textContent=p.err;$("go").disabled=!!p.err;$("chips").innerHTML=p.coins?p.coins.map(c=>'<span class="chip">'+c+"</span>").join(""):"";return!p.err}
+function start(){if(!validate())return;stop();R=search(algo,cur.coins,cur.T);R.ms=timeit(algo,cur.coins,cur.T);k=0;
+ $("sc").max=R.steps.length;$("tr").innerHTML='<li data-i="0">Start: state 0 is in the '+(algo==="astar"?"open list":"queue")+"</li>"+R.steps.map((s,i)=>'<li data-i="'+(i+1)+'">'+(i+1)+". "+s.msg+"</li>").join("");play()}
+function stop(){clearTimeout(timer);timer=null}
+function play(){if(!R)return;if(k>=R.steps.length)k=0;tick(true)}
+function tick(first){stop();if(!first){k++}show();if(k<R.steps.length)timer=setTimeout(()=>tick(false),700/speed);else show()}
+function go(d){stop();if(R)k=Math.min(R.steps.length,Math.max(0,k+d));show()}
+function show(){if(!R)return;const N=R.steps.length,s=k?R.steps[k-1]:null,fin=k===N&&R.found;
+ const path=new Set();if(fin){let u=R.goal;while(u!==null){path.add(u);u=R.nodes[u].p}}
+ const vis=R.nodes.filter(n=>n.cr<=k),maxG=Math.max(...R.nodes.map(n=>n.g)),maxX=Math.max(...R.nodes.map(n=>n.x));
+ const px=n=>OX+n.x*UX,py=n=>OY+n.g*UY;let o="";
+ for(let g=0;g<=maxG;g++)if(vis.some(n=>n.g===g))o+='<text x="6" y="'+(py({g})+4)+'" font-size="11">'+g+(g===1?" coin":" coins")+"</text>";
+ for(const n of vis){if(n.p===null)continue;const p=R.nodes[n.p],sol=n.ex!==null&&n.ex<=k,gr=path.has(n.id);
+  o+='<line x1="'+px(p)+'" y1="'+(py(p)+RD)+'" x2="'+px(n)+'" y2="'+(py(n)-RD)+'" stroke="'+(gr?"var(--goal)":"var(--vis)")+'" stroke-width="'+(gr?2.5:1.2)+'"'+(sol?"":' stroke-dasharray="4 3"')+"/>";
+  o+='<text x="'+((px(p)+px(n))/2+8)+'" y="'+((py(p)+py(n))/2)+'" font-size="10">+'+n.c+"</text>"}
+ for(const n of vis){let c="opn";if(n.rp!==null&&n.rp<=k)c="rep";else if(fin&&n.id===R.goal)c="goal";else if(s&&n.id===s.cur)c="cur";else if(n.ex!==null&&n.ex<=k)c="vis";
+  if(s&&n.id===s.cur)o+='<circle cx="'+px(n)+'" cy="'+py(n)+'" r="'+(RD+5)+'" fill="none" stroke="'+(c==="goal"?"var(--goal)":"var(--cur)")+'"/>';
+  o+='<circle class="n '+c+'" cx="'+px(n)+'" cy="'+py(n)+'" r="'+RD+'"/><text class="nt" x="'+px(n)+'" y="'+(py(n)+4)+'" text-anchor="middle">'+n.a+"</text>";
+  if(n.f!==null)o+='<text x="'+px(n)+'" y="'+(py(n)+RD+11)+'" font-size="9" text-anchor="middle">f='+n.f+"</text>"}
+ const W=OX+maxX*UX+70,H=OY+maxG*UY+50;
+ $("gw").innerHTML='<svg width="'+W+'" height="'+H+'" viewBox="0 0 '+W+" "+H+'" role="img" aria-label="Search tree">'+o+"</svg>";
+ if(s){const n=R.nodes[s.cur],gw=$("gw");gw.scrollLeft=px(n)-gw.clientWidth/2;gw.scrollTop=py(n)-gw.clientHeight/2}
+ $("st").textContent=s?"Step "+k+" of "+N+"   "+s.msg:"Ready. Press Play to watch the search.";
+ const g=s?s.gen:1,e=s?s.exp:0,m=s?s.mf:1,pr=s?s.pr:0;
+ $("stats").textContent="Generated states : "+g+"\nExpanded states  : "+e+"\nMax frontier     : "+m+"\nDuplicates pruned: "+pr+"\nExecution time   : "+R.ms.toFixed(3)+" ms";
+ if(s){const n=R.nodes[s.cur],p=[];let u=s.cur;while(R.nodes[u].p!==null){p.unshift(R.nodes[u].c);u=R.nodes[u].p}
+  $("act").textContent="State "+n.a+"   remaining "+(R.T-n.a)+"\n"+(n.f!==null?"g="+n.g+"  h="+n.h+"  f="+n.f:"g="+n.g+" (coins used)")+"\nPath: "+(p.join(" + ")||"(none)")}else $("act").textContent="Start state 0, nothing expanded yet.";
+ const fr=s?s.fr:[0];$("ol").innerHTML='<div style="color:var(--mut);font-size:12px">'+fr.length+" waiting, next to pop first</div>"+fr.slice(0,30).map(u=>'<span class="chip">'+R.nodes[u].a+(R.nodes[u].f!==null?" f"+R.nodes[u].f:"")+"</span>").join("")+(fr.length>30?" +"+(fr.length-30)+" more":"");
+ $("sc").value=k;$("sl").textContent=k+" / "+N;$("pl").textContent=timer?"Pause":(k>=N?"Play again":"Play");
+ document.querySelectorAll("#tr li").forEach(li=>{const a=+li.dataset.i===k;li.className=a?"a":"";if(a)li.scrollIntoView({block:"nearest"})});
+ document.querySelectorAll("#sp button").forEach(b=>b.className=+b.dataset.s===speed?"on":"")}
+function compare(){if(!validate())return;const a=search("bfs",cur.coins,cur.T),b=search("astar",cur.coins,cur.T);a.ms=timeit("bfs",cur.coins,cur.T);b.ms=timeit("astar",cur.coins,cur.T);
+ const sol=r=>r.found?(r.path.length?r.path.join(" + ")+" = "+r.T:"0 coins"):"No solution";
+ const bar=(r,key,o)=>r[key]+'<div class="bar'+(r===b?" g":"")+'" style="width:'+Math.round(100*r[key]/Math.max(a[key],b[key],1))+'%"></div>';
+ const rows=[["Result",r=>r.found?"Goal found":"No solution"],["Coins in solution",r=>r.found?r.path.length:"-"],["Coin sequence",sol],["Generated states",r=>bar(r,"gen")],["Expanded states",r=>bar(r,"exp")],["Max frontier size",r=>bar(r,"mf")],["Duplicates pruned",r=>r.pr],["Execution time",r=>r.ms.toFixed(3)+" ms"]];
+ const pc=a.exp?Math.round(100*(a.exp-b.exp)/a.exp):0;
+ const note=a.found?(pc>0?"Both found the minimum of "+a.path.length+" coins. A* expanded "+b.exp+" states against "+a.exp+" for BFS, "+pc+"% fewer, because h(n) pulls the search toward the target.":"Both found the minimum of "+a.path.length+" coins and expanded "+b.exp+" states."):"No solution exists. Both must expand every reachable state, so the heuristic gives no gain.";
+ const c=$("cmp");c.hidden=false;c.innerHTML="<h2>BFS vs A*, side by side — coins "+cur.coins.join(", ")+" target "+cur.T+'</h2><div style="overflow-x:auto"><table><tr><th></th><th>BFS <button id="wb">Watch BFS</button></th><th>A* <button id="wa">Watch A*</button></th></tr>'+rows.map(r=>"<tr><td>"+r[0]+"</td><td>"+r[1](a)+"</td><td>"+r[1](b)+"</td></tr>").join("")+'</table></div><p>'+note+'</p><p style="color:var(--mut);font-size:12px">Execution time is the average of many repeated runs. Small differences are noise; the state counts are exact.</p>';
+ $("wb").onclick=()=>{setAlgo("bfs");start()};$("wa").onclick=()=>{setAlgo("astar");start()};c.scrollIntoView({behavior:"smooth"})}
+function load(i){const p=PRE[i];$("ci").value=p[1].join(", ");$("ti").value=p[2];$("note").textContent=p[3];document.querySelectorAll("#pre button").forEach((b,j)=>b.classList.toggle("on",j===i));start()}
+$("pre").innerHTML=PRE.map((p,i)=>'<button class="pre" data-i="'+i+'"><span>'+p[0]+"</span><small>"+p[1].join(",")+"; "+p[2]+"</small></button>").join("");
+document.querySelectorAll("#pre button").forEach(b=>b.onclick=()=>load(+b.dataset.i));
+$("sp").innerHTML=[0.5,1,2,4].map(s=>'<button data-s="'+s+'">'+s+"x</button>").join("");
+document.querySelectorAll("#sp button").forEach(b=>b.onclick=()=>{speed=+b.dataset.s;if(timer){tick(true)}else show()});
+$("tr").onclick=e=>{const li=e.target.closest("li");if(li&&R){stop();k=+li.dataset.i;show()}};
+$("ci").oninput=$("ti").oninput=validate;$("go").onclick=start;$("bfs").onclick=()=>{setAlgo("bfs");if(R)start()};$("astar").onclick=()=>{setAlgo("astar");if(R)start()};
+$("pl").onclick=()=>timer?(stop(),show()):play();$("fw").onclick=()=>go(1);$("bk").onclick=()=>go(-1);$("rs").onclick=()=>{stop();k=0;show()};$("rp").onclick=()=>{stop();k=0;play()};
+$("sc").oninput=e=>{stop();k=+e.target.value;show()};$("cmpb").onclick=compare;
+document.addEventListener("keydown",e=>{if(e.target.tagName==="INPUT"&&e.target.type==="text")return;if(e.key===" "){e.preventDefault();$("pl").click()}else if(e.key==="ArrowRight")go(1);else if(e.key==="ArrowLeft")go(-1);else if(e.key==="r")$("rp").click()});
+validate();load(0);
+</script></body></html>
